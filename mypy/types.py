@@ -2488,6 +2488,12 @@ class UnrollAliasVisitor(TypeTranslator):
         return result
 
 
+class AnnotatedType(ProperType):
+    def __init__(self, varType: Type, varUnit: str) -> None:
+        self.varType = varType
+        self.varUnit = varUnit
+
+
 def strip_type(typ: Type) -> ProperType:
     """Make a copy of type without 'debugging info' (function name)."""
     typ = get_proper_type(typ)

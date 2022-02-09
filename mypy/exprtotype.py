@@ -1,7 +1,6 @@
 """Translate an Expression to a Type value."""
 
 from typing import Optional
-from typing import Annotated
 
 from mypy.nodes import (
     Expression,
@@ -35,6 +34,7 @@ from mypy.types import (
     RawExpressionType,
     ProperType,
     UnionType,
+    AnnotatedType,
     ANNOTATED_TYPE_NAMES,
 )
 from mypy.options import Options
@@ -108,12 +108,11 @@ def expr_to_unanalyzed_type(
                 # of the Annotation definition and only returning the type information,
                 # losing all the annotations.
                 # args[0] -> tipo de variavel
-                # args[1] -> unidade
-
-                return Annotated[
+                return AnnotatedType(
                     expr_to_unanalyzed_type(args[0], options, allow_new_syntax, expr),
-                    expr_to_unanalyzed_type(args[1], options, allow_new_syntax, expr),
-                ]
+                    "teste"
+                    )
+
             else:
                 base.args = tuple(
                     expr_to_unanalyzed_type(arg, options, allow_new_syntax, expr)
