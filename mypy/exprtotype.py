@@ -108,10 +108,15 @@ def expr_to_unanalyzed_type(
                 # of the Annotation definition and only returning the type information,
                 # losing all the annotations.
                 # args[0] -> tipo de variavel
+                print(args[0])
+                print(dir(args[0]))
+                print(args[1])
+                print(dir(args[1]))
+
                 return AnnotatedType(
                     expr_to_unanalyzed_type(args[0], options, allow_new_syntax, expr),
-                    "teste"
-                    )
+                    str(args),
+                )
 
             else:
                 base.args = tuple(

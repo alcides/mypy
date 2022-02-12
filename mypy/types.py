@@ -2493,6 +2493,26 @@ class AnnotatedType(ProperType):
         self.varType = varType
         self.varUnit = varUnit
 
+    def __hash__(self) -> int:
+        return hash(self.varUnit)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AnnotatedType):
+            return NotImplemented
+        return self.varUnit == other.varUnit and self.varType == other.varType
+
+    def serialize(self) -> JsonDict:
+        return {
+            ".class": "AnnotatedType",
+            "varType": self.varType,
+            "varUnit": self.varUnit,
+        }
+
+    @classmethod
+    def deserialize(cls, data: JsonDict) -> "AnnotatedType":
+        assert data[".class"] == "AnnotatedType"
+        return AnnotatedType(deserialize_type(data["varType"]), data["varUnit"])
+
 
 def strip_type(typ: Type) -> ProperType:
     """Make a copy of type without 'debugging info' (function name)."""
