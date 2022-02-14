@@ -1,6 +1,6 @@
 [case testAnnotatedUnit0]
 from typing_extensions import Annotated
-x: Annotated[int, 'm/s']
+x: Annotated[int, "m/s"]
 reveal_type(x)  # N: Revealed type is "Annotated["builtins.int","m/s"]"
 [builtins fixtures/tuple.pyi]
 
@@ -13,22 +13,22 @@ reveal_type(x)  # N: Revealed type is "Annotated["Union[builtins.int, builtins.s
 
 [case testAnnotatedUnit2]
 from typing_extensions import Annotated
-x: Annotated[int, 'm/s']
-reveal_type(x)  # N: Revealed type is "Annotated["builtins.int","m/s"]"
+x: Annotated[int, "m/s"]
+reveal_type(x)  # N: Revealed type is "Annotated["builtins.int",'m/s']"
 [builtins fixtures/tuple.pyi]
 
 
 
 [case testAnnotatedNestedUnit0]
 from typing_extensions import Annotated
-x: Annotated[Annotated[int, m], m/s]
+x: Annotated[Annotated[int, "m/s"], "m/s"]
 reveal_type(x)  # N: Revealed type is "Annotated["Annotated["builtins.int","m"]","m/s"]"
 [builtins fixtures/tuple.pyi]
 
 
 [case testAnnotatedUnitDifferentName]
 from typing_extensions import Annotated as An
-x: An[int, 'm/s']
+x: An[int, "m/s"]
 reveal_type(x)  # N: Revealed type is "Annotated["builtins.int","m/s"]"
 [builtins fixtures/tuple.pyi]
 
@@ -44,7 +44,7 @@ reveal_type(x)  # N: Revealed type is "Annotated["builtins.tuple[builtins.int, .
 from typing import TypeVar
 from typing_extensions import Annotated
 T = TypeVar('T')
-Alias = Annotated[T, 'm/s']
+Alias = Annotated[T, "m/s"]
 x: Alias[int]
 reveal_type(x)  # N: Revealed type is "Annotated["builtins.int","m/s"]"
 [builtins fixtures/tuple.pyi]
@@ -62,7 +62,7 @@ reveal_type(x)  # N: Revealed type is "Annotated["Tuple[builtins.int, builtins.i
 from typing import TypeVar, Union
 from typing_extensions import Annotated
 T = TypeVar('T')
-Alias = Annotated[Union[T, str], 'm/s']
+Alias = Annotated[Union[T, str], "m/s"]
 x: Alias[int]
 reveal_type(x)  # N: Revealed type is "Annotated["Union[builtins.int, builtins.str]","m/s"]"
 [builtins fixtures/tuple.pyi]
