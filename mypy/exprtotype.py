@@ -113,17 +113,13 @@ def expr_to_unanalyzed_type(
                 print(dir(args[0]))
                 print(args[1])
                 print(dir(args[1]))
-                if isinstance(args[1], StrExpr):
-                    return AnnotatedType(
-                        expr_to_unanalyzed_type(
-                            args[0], options, allow_new_syntax, expr
-                        ),
-                        str(args[1]),
-                    )
-                else:
-                    return expr_to_unanalyzed_type(
-                        args[0], options, allow_new_syntax, expr
-                    )
+                return AnnotatedType(
+                    expr_to_unanalyzed_type(args[0], options, allow_new_syntax, expr),
+                    args[1],
+                )
+                # return expr_to_unanalyzed_type(
+                #    args[0], options, allow_new_syntax, expr
+                # )
 
             else:
                 base.args = tuple(

@@ -2490,23 +2490,23 @@ class UnrollAliasVisitor(TypeTranslator):
 
 
 class AnnotatedType(ProperType):
-    def __init__(self, varType: Type, varUnit: str) -> None:
-        self.varType = varType
-        self.varUnit = varUnit
+    def __init__(self, base_type: Type, metadata: str) -> None:
+        self.base_type = base_type
+        self.metadata = metadata
 
     def __hash__(self) -> int:
-        return hash(self.varUnit)
+        return hash(self.metadata)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, AnnotatedType):
             return NotImplemented
-        return self.varUnit == other.varUnit and self.varType == other.varType
+        return self.metadata == other.metadata and self.base_type == other.base_type
 
     def serialize(self) -> JsonDict:
         return {
             ".class": "AnnotatedType",
-            "varType": self.varType,
-            "varUnit": self.varUnit,
+            "varType": self.base_type,
+            "varUnit": self.metadata,
         }
 
     @classmethod
