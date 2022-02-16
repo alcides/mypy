@@ -177,7 +177,7 @@ def _is_subtype(
         return False
     elif isinstance(right, AnnotatedType) and isinstance(left, AnnotatedType):
         # TODO ifs ver se as string e os tipos sao iguais
-        if right.varType == left.varType and right.varUnit == left.varUnit:
+        if right.base_type == left.base_type and right.metadata == left.metadata:
             return True
         else:
             return False

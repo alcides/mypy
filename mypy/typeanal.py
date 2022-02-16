@@ -80,6 +80,7 @@ def analyze_type_alias(node: Expression,
     """
     try:
         type = expr_to_unanalyzed_type(node, options, api.is_stub_file)
+        print("type: ", type)
     except TypeTranslationError:
         api.fail('Invalid type alias: expression is not a valid type', node)
         return None
@@ -88,6 +89,7 @@ def analyze_type_alias(node: Expression,
                             allow_placeholder=allow_placeholder)
     analyzer.in_dynamic_func = in_dynamic_func
     analyzer.global_scope = global_scope
+    print("analyzer: ", analyzer)
     res = type.accept(analyzer)
     return res, analyzer.aliases_used
 

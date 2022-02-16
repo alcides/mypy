@@ -122,7 +122,7 @@ if sys.platform in ("darwin", "win32"):
 
 
 class TypeCheckSuite(DataSuite):
-    files = typecheck_files
+    files = ["check-annotated.test", "check-annotated-units.test"]
 
     def run_case(self, testcase: DataDrivenTestCase) -> None:
         incremental = (

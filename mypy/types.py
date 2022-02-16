@@ -2029,6 +2029,32 @@ class UnionType(ProperType):
         assert data['.class'] == 'UnionType'
         return UnionType([deserialize_type(t) for t in data['items']])
 
+class AnnotatedType(ProperType):
+    def __init__(self, base_type: Type, metadata: str) -> None:
+        self.base_type = base_type
+        self.metadata = metadata
+
+    def __hash__(self) -> int:
+        return hash(self.metadata)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, AnnotatedType):
+            return NotImplemented
+        return self.metadata == other.metadata and self.base_type == other.base_type
+    def accept(self, visitor: 'TypeVisitor[T]') -> T:
+            return visitor.visit_annotated_type(self)
+
+    def serialize(self) -> JsonDict:
+        return {
+            ".class": "AnnotatedType",
+            "varType": self.base_type,
+            "varUnit": self.metadata,
+        }
+
+    @classmethod
+    def deserialize(cls, data: JsonDict) -> "AnnotatedType":
+        assert data[".class"] == "AnnotatedType"
+        return AnnotatedType(deserialize_type(data["varType"]), data["varUnit"])
 
 class PartialType(ProperType):
     """Type such as List[?] where type arguments are unknown, or partial None type.
@@ -2434,6 +2460,12 @@ class TypeStrVisitor(SyntheticTypeVisitor[str]):
         s = self.list_str(t.items)
         return 'Union[{}]'.format(s)
 
+    def visit_annotated_type(self, t: AnnotatedType) -> str:
+        s = [str(t.base_type), t.metadata]
+
+        return 'Annotated[{}]'.format(s)
+
+
     def visit_partial_type(self, t: PartialType) -> str:
         if t.type is None:
             return '<partial None>'
@@ -2487,32 +2519,6 @@ class UnrollAliasVisitor(TypeTranslator):
         if subvisitor.recursed:
             self.recursed = True
         return result
-
-
-class AnnotatedType(ProperType):
-    def __init__(self, base_type: Type, metadata: str) -> None:
-        self.base_type = base_type
-        self.metadata = metadata
-
-    def __hash__(self) -> int:
-        return hash(self.metadata)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, AnnotatedType):
-            return NotImplemented
-        return self.metadata == other.metadata and self.base_type == other.base_type
-
-    def serialize(self) -> JsonDict:
-        return {
-            ".class": "AnnotatedType",
-            "varType": self.base_type,
-            "varUnit": self.metadata,
-        }
-
-    @classmethod
-    def deserialize(cls, data: JsonDict) -> "AnnotatedType":
-        assert data[".class"] == "AnnotatedType"
-        return AnnotatedType(deserialize_type(data["varType"]), data["varUnit"])
 
 
 def strip_type(typ: Type) -> ProperType:

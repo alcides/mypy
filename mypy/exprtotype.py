@@ -115,7 +115,7 @@ def expr_to_unanalyzed_type(
                 print(dir(args[1]))
                 return AnnotatedType(
                     expr_to_unanalyzed_type(args[0], options, allow_new_syntax, expr),
-                    args[1],
+                    str(args[1]),
                 )
                 # return expr_to_unanalyzed_type(
                 #    args[0], options, allow_new_syntax, expr

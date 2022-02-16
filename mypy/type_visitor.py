@@ -13,17 +13,51 @@ other modules refer to them.
 
 from abc import abstractmethod
 from mypy.backports import OrderedDict
-from typing import Generic, TypeVar, cast, Any, List, Callable, Iterable, Optional, Set, Sequence
+from typing import (
+    Generic,
+    TypeVar,
+    cast,
+    Any,
+    List,
+    Callable,
+    Iterable,
+    Optional,
+    Set,
+    Sequence,
+)
 from mypy_extensions import trait, mypyc_attr
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 from mypy.types import (
-    Type, AnyType, CallableType, Overloaded, TupleType, TypedDictType, LiteralType,
-    RawExpressionType, Instance, NoneType, TypeType,
-    UnionType, TypeVarType, PartialType, DeletedType, UninhabitedType, TypeVarLikeType,
-    UnboundType, ErasedType, StarType, EllipsisType, TypeList, CallableArgument,
-    PlaceholderType, TypeAliasType, ParamSpecType, get_proper_type
+    Type,
+    AnyType,
+    CallableType,
+    Overloaded,
+    TupleType,
+    TypedDictType,
+    LiteralType,
+    RawExpressionType,
+    Instance,
+    NoneType,
+    TypeType,
+    UnionType,
+    AnnotatedType,
+    TypeVarType,
+    PartialType,
+    DeletedType,
+    UninhabitedType,
+    TypeVarLikeType,
+    UnboundType,
+    ErasedType,
+    StarType,
+    EllipsisType,
+    TypeList,
+    CallableArgument,
+    PlaceholderType,
+    TypeAliasType,
+    ParamSpecType,
+    get_proper_type,
 )
 
 
@@ -96,6 +130,10 @@ class TypeVisitor(Generic[T]):
         pass
 
     @abstractmethod
+    def visit_annotated_type(self, t: AnnotatedType) -> T:
+        pass
+
+    @abstractmethod
     def visit_partial_type(self, t: PartialType) -> T:
         pass
 
@@ -107,13 +145,15 @@ class TypeVisitor(Generic[T]):
     def visit_type_alias_type(self, t: TypeAliasType) -> T:
         pass
 
+    ""
+
 
 @trait
 @mypyc_attr(allow_interpreted_subclasses=True)
 class SyntheticTypeVisitor(TypeVisitor[T]):
     """A TypeVisitor that also knows how to visit synthetic AST constructs.
 
-       Not just real types."""
+    Not just real types."""
 
     @abstractmethod
     def visit_star_type(self, t: StarType) -> T:
@@ -190,26 +230,36 @@ class TypeTranslator(TypeVisitor[Type]):
         return t
 
     def visit_callable_type(self, t: CallableType) -> Type:
-        return t.copy_modified(arg_types=self.translate_types(t.arg_types),
-                               ret_type=t.ret_type.accept(self),
-                               variables=self.translate_variables(t.variables))
+        return t.copy_modified(
+            arg_types=self.translate_types(t.arg_types),
+            ret_type=t.ret_type.accept(self),
+            variables=self.translate_variables(t.variables),
+        )
 
     def visit_tuple_type(self, t: TupleType) -> Type:
-        return TupleType(self.translate_types(t.items),
-                         # TODO: This appears to be unsafe.
-                         cast(Any, t.partial_fallback.accept(self)),
-                         t.line, t.column)
+        return TupleType(
+            self.translate_types(t.items),
+            # TODO: This appears to be unsafe.
+            cast(Any, t.partial_fallback.accept(self)),
+            t.line,
+            t.column,
+        )
 
     def visit_typeddict_type(self, t: TypedDictType) -> Type:
-        items = OrderedDict([
-            (item_name, item_type.accept(self))
-            for (item_name, item_type) in t.items.items()
-        ])
-        return TypedDictType(items,
-                             t.required_keys,
-                             # TODO: This appears to be unsafe.
-                             cast(Any, t.fallback.accept(self)),
-                             t.line, t.column)
+        items = OrderedDict(
+            [
+                (item_name, item_type.accept(self))
+                for (item_name, item_type) in t.items.items()
+            ]
+        )
+        return TypedDictType(
+            items,
+            t.required_keys,
+            # TODO: This appears to be unsafe.
+            cast(Any, t.fallback.accept(self)),
+            t.line,
+            t.column,
+        )
 
     def visit_literal_type(self, t: LiteralType) -> Type:
         fallback = t.fallback.accept(self)
@@ -224,11 +274,15 @@ class TypeTranslator(TypeVisitor[Type]):
     def visit_union_type(self, t: UnionType) -> Type:
         return UnionType(self.translate_types(t.items), t.line, t.column)
 
+    def visit_annotated_type(self, t: AnnotatedType) -> Type:
+        return AnnotatedType(t.base_type, t.metadata)
+
     def translate_types(self, types: Iterable[Type]) -> List[Type]:
         return [t.accept(self) for t in types]
 
-    def translate_variables(self,
-                            variables: Sequence[TypeVarLikeType]) -> Sequence[TypeVarLikeType]:
+    def translate_variables(
+        self, variables: Sequence[TypeVarLikeType]
+    ) -> Sequence[TypeVarLikeType]:
         return variables
 
     def visit_overloaded(self, t: Overloaded) -> Type:
@@ -240,7 +294,9 @@ class TypeTranslator(TypeVisitor[Type]):
         return Overloaded(items=items)
 
     def visit_type_type(self, t: TypeType) -> Type:
-        return TypeType.make_normalized(t.item.accept(self), line=t.line, column=t.column)
+        return TypeType.make_normalized(
+            t.item.accept(self), line=t.line, column=t.column
+        )
 
     @abstractmethod
     def visit_type_alias_type(self, t: TypeAliasType) -> Type:
@@ -328,6 +384,9 @@ class TypeQuery(SyntheticTypeVisitor[T]):
 
     def visit_union_type(self, t: UnionType) -> T:
         return self.query_types(t.items)
+
+    def visit_annotated_type(self, t: AnnotatedType) -> T:
+        return t.base_type.accept(self)
 
     def visit_overloaded(self, t: Overloaded) -> T:
         return self.query_types(t.items)
