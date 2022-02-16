@@ -203,7 +203,6 @@ class Type(mypy.nodes.Context):
         return True
 
     def accept(self, visitor: 'TypeVisitor[T]') -> T:
-        print(type(visitor))
         raise RuntimeError('Not implemented')
 
     def __repr__(self) -> str:
