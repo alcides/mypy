@@ -635,6 +635,12 @@ class SubtypeVisitor(TypeVisitor[bool]):
     def visit_union_type(self, left: UnionType) -> bool:
         return all(self._is_subtype(item, self.orig_right) for item in left.items)
 
+    def visit_annotated_type(self, left: AnnotatedType) -> bool:
+        if isinstance(self.right, AnnotatedType):
+            return self.right == left
+        else:
+            return False
+
     def visit_partial_type(self, left: PartialType) -> bool:
         # This is indeterminate as we don't really know the complete type yet.
         if left.type is None:
@@ -1668,6 +1674,12 @@ class ProperSubtypeVisitor(TypeVisitor[bool]):
         return all(
             [self._is_proper_subtype(item, self.orig_right) for item in left.items]
         )
+
+    def visit_annotated_type(self, left: AnnotatedType) -> bool:
+        if isinstance(self.right, AnnotatedType):
+            return self.right == left
+        else:
+            return False
 
     def visit_partial_type(self, left: PartialType) -> bool:
         # TODO: What's the right thing to do here?
