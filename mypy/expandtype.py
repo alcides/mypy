@@ -1,11 +1,32 @@
 from typing import Dict, Iterable, List, TypeVar, Mapping, cast
 
 from mypy.types import (
-    Type, Instance, CallableType, TypeVisitor, UnboundType, AnyType,
-    NoneType, Overloaded, TupleType, TypedDictType, UnionType,
-    ErasedType, PartialType, DeletedType, UninhabitedType, TypeType, TypeVarId,
-    FunctionLike, TypeVarType, LiteralType, get_proper_type, ProperType,
-    TypeAliasType, ParamSpecType, TypeVarLikeType
+    AnnotatedType,
+    Type,
+    Instance,
+    CallableType,
+    TypeVisitor,
+    UnboundType,
+    AnyType,
+    NoneType,
+    Overloaded,
+    TupleType,
+    TypedDictType,
+    UnionType,
+    ErasedType,
+    PartialType,
+    DeletedType,
+    UninhabitedType,
+    TypeType,
+    TypeVarId,
+    FunctionLike,
+    TypeVarType,
+    LiteralType,
+    get_proper_type,
+    ProperType,
+    TypeAliasType,
+    ParamSpecType,
+    TypeVarLikeType,
 )
 
 
@@ -30,7 +51,7 @@ def expand_type_by_instance(typ: Type, instance: Instance) -> Type:
         return expand_type(typ, variables)
 
 
-F = TypeVar('F', bound=FunctionLike)
+F = TypeVar("F", bound=FunctionLike)
 
 
 def freshen_function_type_vars(callee: F) -> F:
@@ -49,12 +70,15 @@ def freshen_function_type_vars(callee: F) -> F:
                 tv = ParamSpecType.new_unification_variable(v)
             tvs.append(tv)
             tvmap[v.id] = tv
-        fresh = cast(CallableType, expand_type(callee, tvmap)).copy_modified(variables=tvs)
+        fresh = cast(CallableType, expand_type(callee, tvmap)).copy_modified(
+            variables=tvs
+        )
         return cast(F, fresh)
     else:
         assert isinstance(callee, Overloaded)
-        fresh_overload = Overloaded([freshen_function_type_vars(item)
-                                     for item in callee.items])
+        fresh_overload = Overloaded(
+            [freshen_function_type_vars(item) for item in callee.items]
+        )
         return cast(F, fresh_overload)
 
 
@@ -94,8 +118,9 @@ class ExpandTypeVisitor(TypeVisitor[Type]):
         if isinstance(repl, Instance):
             inst = repl
             # Return copy of instance with type erasure flag on.
-            return Instance(inst.type, inst.args, line=inst.line,
-                            column=inst.column, erased=True)
+            return Instance(
+                inst.type, inst.args, line=inst.line, column=inst.column, erased=True
+            )
         else:
             return repl
 
@@ -104,8 +129,9 @@ class ExpandTypeVisitor(TypeVisitor[Type]):
         if isinstance(repl, Instance):
             inst = repl
             # Return copy of instance with type erasure flag on.
-            return Instance(inst.type, inst.args, line=inst.line,
-                            column=inst.column, erased=True)
+            return Instance(
+                inst.type, inst.args, line=inst.line, column=inst.column, erased=True
+            )
         elif isinstance(repl, ParamSpecType):
             return repl.with_flavor(t.flavor)
         else:
@@ -126,14 +152,20 @@ class ExpandTypeVisitor(TypeVisitor[Type]):
                 # Substitute *args: P.args, **kwargs: P.kwargs
                 t = t.expand_param_spec(repl)
                 # TODO: Substitute remaining arg types
-                return t.copy_modified(ret_type=t.ret_type.accept(self),
-                                       type_guard=(t.type_guard.accept(self)
-                                                   if t.type_guard is not None else None))
+                return t.copy_modified(
+                    ret_type=t.ret_type.accept(self),
+                    type_guard=(
+                        t.type_guard.accept(self) if t.type_guard is not None else None
+                    ),
+                )
 
-        return t.copy_modified(arg_types=self.expand_types(t.arg_types),
-                               ret_type=t.ret_type.accept(self),
-                               type_guard=(t.type_guard.accept(self)
-                                           if t.type_guard is not None else None))
+        return t.copy_modified(
+            arg_types=self.expand_types(t.arg_types),
+            ret_type=t.ret_type.accept(self),
+            type_guard=(
+                t.type_guard.accept(self) if t.type_guard is not None else None
+            ),
+        )
 
     def visit_overloaded(self, t: Overloaded) -> Type:
         items: List[CallableType] = []
@@ -158,7 +190,11 @@ class ExpandTypeVisitor(TypeVisitor[Type]):
         # After substituting for type variables in t.items,
         # some of the resulting types might be subtypes of others.
         from mypy.typeops import make_simplified_union  # asdf
+
         return make_simplified_union(self.expand_types(t.items), t.line, t.column)
+
+    def visit_annotated_type(self, t: AnnotatedType) -> Type:
+        return t
 
     def visit_partial_type(self, t: PartialType) -> Type:
         return t

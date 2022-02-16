@@ -50,6 +50,7 @@ Summary of how this works for certain kinds of differences:
   fine-grained dependencies.
 """
 
+from ast import Str
 from typing import Set, Dict, Tuple, Optional, Sequence, Union
 
 from mypy.nodes import (
@@ -405,9 +406,7 @@ class SnapshotTypeVisitor(TypeVisitor[SnapshotItem]):
         return ("UnionType", normalized)
 
     def visit_annotated_type(self, t: AnnotatedType) -> SnapshotItem:
-        normalized = tuple(
-            [snapshot_type(t.base_type), snapshot_simple_type(t.metadata)]
-        )
+        normalized = tuple([snapshot_type(t.base_type), t.metadata])
         return ("AnnotatedType", normalized)
 
     def visit_overloaded(self, typ: Overloaded) -> SnapshotItem:
