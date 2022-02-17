@@ -1,6 +1,6 @@
 from typing import Dict, Iterable, List, Optional, Set, Union
 
-from mypy.types import TypeVisitor
+from mypy.types import AnnotatedType, TypeVisitor
 import mypy.types as types
 from mypy.util import split_module_names
 
@@ -99,6 +99,9 @@ class TypeIndirectionVisitor(TypeVisitor[Set[str]]):
 
     def visit_union_type(self, t: types.UnionType) -> Set[str]:
         return self._visit(t.items)
+
+    def visit_annotated_type(self, t: AnnotatedType) -> Set[str]:
+        return self._visit(t.base_type)
 
     def visit_partial_type(self, t: types.PartialType) -> Set[str]:
         return set()

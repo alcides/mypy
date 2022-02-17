@@ -25,7 +25,7 @@ from mypy.types import (
     TypeAliasType,
     ParamSpecType,
 )
-from mypy.typeops import true_only, tuple_fallback, make_simplified_union
+from mypy.typeops import tuple_fallback, make_simplified_union
 
 
 def is_same_type(left: Type, right: Type) -> bool:

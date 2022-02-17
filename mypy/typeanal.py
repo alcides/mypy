@@ -12,7 +12,7 @@ from mypy_extensions import DefaultNamedArg
 from mypy.messages import MessageBuilder, quote_type_string, format_type_bare
 from mypy.options import Options
 from mypy.types import (
-    Type, UnboundType, TupleType, TypedDictType, UnionType, Instance, AnyType,
+    Type, UnboundType, AnnotatedType, TupleType, TypedDictType, UnionType, Instance, AnyType,
     CallableType, NoneType, ErasedType, DeletedType, TypeList, TypeVarType, SyntheticTypeVisitor,
     StarType, PartialType, EllipsisType, UninhabitedType, TypeType, CallableArgument,
     TypeQuery, union_items, TypeOfAny, LiteralType, RawExpressionType,
@@ -706,6 +706,9 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                 and not self.options.python_version >= (3, 10)):
             self.fail("X | Y syntax for unions requires Python 3.10", t)
         return UnionType(self.anal_array(t.items), t.line)
+
+    def visit_annotated_type(self, t: AnnotatedType) -> Type:
+        return t
 
     def visit_partial_type(self, t: PartialType) -> Type:
         assert False, "Internal error: Unexpected partial type"

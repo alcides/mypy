@@ -466,12 +466,12 @@ class TypeMeetVisitor(TypeVisitor[ProperType]):
             meets = [meet_types(x, self.s)
                      for x in t.items]
         return make_simplified_union(meets)
+
     def visit_annotated_type(self, t: AnnotatedType) -> ProperType:
         if isinstance(self.s, AnnotatedType):
             return self.s
         else:
             return t
-
 
     def visit_none_type(self, t: NoneType) -> ProperType:
         if state.strict_optional:

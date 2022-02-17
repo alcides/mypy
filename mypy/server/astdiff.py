@@ -50,7 +50,6 @@ Summary of how this works for certain kinds of differences:
   fine-grained dependencies.
 """
 
-from ast import Str
 from typing import Set, Dict, Tuple, Optional, Sequence, Union
 
 from mypy.nodes import (

@@ -3,10 +3,33 @@ from typing import Iterable
 from mypy_extensions import trait
 
 from mypy.types import (
-    Type, SyntheticTypeVisitor, AnyType, UninhabitedType, NoneType, ErasedType, DeletedType,
-    TypeVarType, LiteralType, Instance, CallableType, TupleType, TypedDictType, UnionType,
-    Overloaded, TypeType, CallableArgument, UnboundType, TypeList, StarType, EllipsisType,
-    PlaceholderType, PartialType, RawExpressionType, TypeAliasType, ParamSpecType
+    AnnotatedType,
+    Type,
+    SyntheticTypeVisitor,
+    AnyType,
+    UninhabitedType,
+    NoneType,
+    ErasedType,
+    DeletedType,
+    TypeVarType,
+    LiteralType,
+    Instance,
+    CallableType,
+    TupleType,
+    TypedDictType,
+    UnionType,
+    Overloaded,
+    TypeType,
+    CallableArgument,
+    UnboundType,
+    TypeList,
+    StarType,
+    EllipsisType,
+    PlaceholderType,
+    PartialType,
+    RawExpressionType,
+    TypeAliasType,
+    ParamSpecType,
 )
 
 
@@ -64,6 +87,9 @@ class TypeTraverserVisitor(SyntheticTypeVisitor[None]):
 
     def visit_union_type(self, t: UnionType) -> None:
         self.traverse_types(t.items)
+
+    def visit_annotated_type(self, t: AnnotatedType) -> None:
+        t.base_type.accept(self)
 
     def visit_overloaded(self, t: Overloaded) -> None:
         self.traverse_types(t.items)
