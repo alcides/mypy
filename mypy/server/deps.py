@@ -865,6 +865,10 @@ class DependencyVisitor(TraverserVisitor):
                 self.add_operator_method_dependency_for_type(
                     get_proper_type(item), method
                 )
+        elif isinstance(typ, AnnotatedType):
+            self.add_operator_method_dependency_for_type(
+                get_proper_type(typ.base_type), method
+            )
         elif isinstance(typ, FunctionLike) and typ.is_type_obj():
             self.add_operator_method_dependency_for_type(typ.fallback, method)
         elif isinstance(typ, TypeType):
@@ -960,6 +964,10 @@ class DependencyVisitor(TraverserVisitor):
             for item in typ.items:
                 targets.extend(self.attribute_triggers(item, name))
             return targets
+        elif isinstance(typ, AnnotatedType):
+            triggers = []
+            triggers.extend(self.get_type_triggers(typ.base_type))
+            return triggers
         elif isinstance(typ, TypeType):
             triggers = self.attribute_triggers(typ.item, name)
             if (
