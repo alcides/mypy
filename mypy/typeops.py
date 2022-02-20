@@ -14,7 +14,7 @@ from mypy.types import (
     TupleType, Instance, FunctionLike, Type, CallableType, TypeVarLikeType, Overloaded,
     TypeVarType, UninhabitedType, FormalArgument, UnionType, NoneType,
     AnyType, TypeOfAny, TypeType, ProperType, LiteralType, get_proper_type, get_proper_types,
-    copy_type, TypeAliasType, TypeQuery, ParamSpecType
+    copy_type, TypeAliasType, TypeQuery, ParamSpecType, AnnotatedType
 )
 from mypy.nodes import (
     FuncBase, FuncItem, FuncDef, OverloadedFuncDef, TypeInfo, ARG_STAR, ARG_STAR2, ARG_POS,
@@ -327,8 +327,15 @@ def make_simplified_union(items: Sequence[Type],
     containing type variables. If set to True, keep all ErasedType items.
     """
     items = get_proper_types(items)
+    all_items: List[ProperType] = []
     while any(isinstance(typ, UnionType) for typ in items):
-        all_items: List[ProperType] = []
+        for typ in items:
+            if isinstance(typ, UnionType):
+                all_items.extend(get_proper_types(typ.items))
+            else:
+                all_items.append(typ)
+        items = all_items
+    while any(isinstance(typ, UnionType) for typ in items):
         for typ in items:
             if isinstance(typ, UnionType):
                 all_items.extend(get_proper_types(typ.items))
@@ -616,6 +623,8 @@ def try_getting_literals_from_type(typ: Type,
         possible_literals: List[Type] = [typ.last_known_value]
     elif isinstance(typ, UnionType):
         possible_literals = list(typ.items)
+    elif isinstance(typ, AnnotatedType):
+        possible_literals = [typ.base_type]
     else:
         possible_literals = [typ]
 
@@ -643,6 +652,8 @@ def is_literal_type_like(t: Optional[Type]) -> bool:
         return True
     elif isinstance(t, UnionType):
         return any(is_literal_type_like(item) for item in t.items)
+    elif isinstance(t, AnnotatedType):
+        return is_literal_type_like(t.base_type)
     elif isinstance(t, TypeVarType):
         return (is_literal_type_like(t.upper_bound)
                 or any(is_literal_type_like(item) for item in t.values))
@@ -780,6 +791,8 @@ def coerce_to_literal(typ: Type) -> Type:
     if isinstance(typ, UnionType):
         new_items = [coerce_to_literal(item) for item in typ.items]
         return UnionType.make_union(new_items)
+    elif isinstance(typ, AnnotatedType):
+        return coerce_to_literal(typ.base_type)
     elif isinstance(typ, Instance):
         if typ.last_known_value:
             return typ.last_known_value
@@ -824,6 +837,8 @@ def custom_special_method(typ: Type, name: str, check_all: bool = False) -> bool
         if check_all:
             return all(custom_special_method(t, name, check_all) for t in typ.items)
         return any(custom_special_method(t, name) for t in typ.items)
+    if isinstance(typ, AnnotatedType):
+        return custom_special_method(typ.base_type, name)
     if isinstance(typ, TupleType):
         return custom_special_method(tuple_fallback(typ), name, check_all)
     if isinstance(typ, CallableType) and typ.is_type_obj():
