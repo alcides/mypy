@@ -2030,7 +2030,8 @@ class UnionType(ProperType):
 
 
 class AnnotatedType(ProperType):
-    def __init__(self, base_type: Type, metadata: str) -> None:
+    def __init__(self, base_type: Type, metadata: str, line: int = -1, column: int = -1) -> None:
+        super().__init__(line, column)
         self.base_type = base_type
         self.metadata = metadata
 

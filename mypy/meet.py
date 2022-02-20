@@ -73,6 +73,8 @@ def narrow_declared_type(declared: Type, narrowed: Type) -> Type:
     elif isinstance(narrowed, UnionType):
         return make_simplified_union([narrow_declared_type(declared, x)
                                       for x in narrowed.relevant_items()])
+    elif isinstance(narrowed, AnnotatedType):
+        return narrow_declared_type(declared, narrowed.base_type)
     elif isinstance(narrowed, AnyType):
         return narrowed
     elif isinstance(narrowed, TypeVarType) and is_subtype(narrowed.upper_bound, declared):
@@ -129,6 +131,8 @@ def get_possible_variants(typ: Type) -> List[Type]:
             return [typ.upper_bound]
     elif isinstance(typ, UnionType):
         return list(typ.items)
+    elif isinstance(typ, AnnotatedType):
+        return [typ.base_type]
     elif isinstance(typ, Overloaded):
         # Note: doing 'return typ.items()' makes mypy
         # infer a too-specific return type of List[CallableType]
