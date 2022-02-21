@@ -33,7 +33,7 @@ from mypy.literals import literal, literal_hash, Key
 from mypy.typeanal import has_any_from_unimported_type, check_for_explicit_any, make_optional_type
 from mypy.types import (
     Type, AnyType, CallableType, FunctionLike, Overloaded, TupleType, TypedDictType,
-    Instance, NoneType, strip_type, TypeType, TypeOfAny,
+    Instance, NoneType, strip_type, TypeType, TypeOfAny, AnnotatedType,
     UnionType, TypeVarId, TypeVarType, PartialType, DeletedType, UninhabitedType,
     is_named_instance, union_items, TypeQuery, LiteralType,
     is_optional, remove_optional, TypeTranslator, StarType, get_proper_type, ProperType,
@@ -2716,6 +2716,9 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
             return True  # Can be a property, or some other magic
         if isinstance(typ, UnionType):
             return all(self.is_assignable_slot(lvalue, u) for u in typ.items)
+        if isinstance(typ, AnnotatedType):
+            return self.is_assignable_slot(lvalue, typ.base_type)
+
         return False
 
     def check_assignment_to_multiple_lvalues(self, lvalues: List[Lvalue], rvalue: Expression,
@@ -2821,7 +2824,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
             relevant_items = rvalue_type.relevant_items()
             if len(relevant_items) == 1:
                 rvalue_type = get_proper_type(relevant_items[0])
-
+        if isinstance(rvalue_type, AnnotatedType):
+            rvalue_type = get_proper_type(rvalue_type.base_type)
         if isinstance(rvalue_type, AnyType):
             for lv in lvalues:
                 if isinstance(lv, StarExpr):
@@ -3707,6 +3711,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
                 for item in typ.relevant_items()
                 for union_typ in self.get_types_from_except_handler(item, n)
             ]
+        elif isinstance(typ, AnnotatedType):
+            return [typ.base_type]
         elif isinstance(typ, Instance) and is_named_instance(typ, 'builtins.tuple'):
             # variadic tuple
             return [typ.args[0]]

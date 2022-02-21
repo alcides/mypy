@@ -315,6 +315,9 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
         elif fullname == 'typing.Union':
             items = self.anal_array(t.args)
             return UnionType.make_union(items)
+        elif fullname == 'typing.AnnotatedType':
+            annotatedBaseType = self.anal_type(t.args[0], True, allow_param_spec=False)
+            return AnnotatedType(annotatedBaseType, str(t.args[1]))
         elif fullname == 'typing.Optional':
             if len(t.args) != 1:
                 self.fail('Optional[...] must have exactly one type argument', t)
@@ -924,6 +927,13 @@ class TypeAnalyser(SyntheticTypeVisitor[Type], TypeAnalyzerPluginInterface):
                 if union_result is None:
                     return None
                 out.extend(union_result)
+            return out
+        elif isinstance(arg, AnnotatedType):
+            out = []
+            annotated_result = self.analyze_literal_param(idx, arg.base_type, ctx)
+            if annotated_result is None:
+                return None
+            out.extend(annotated_result)
             return out
         else:
             self.fail('Parameter {} of Literal[...] is invalid'.format(idx), ctx)
