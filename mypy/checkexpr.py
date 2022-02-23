@@ -3387,6 +3387,12 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                 # more than one.  Either way, we can't decide on a context.
                 pass
 
+        if isinstance(type_context, AnnotatedType):
+            annotated_base_type = get_proper_type(type_context.base_type)
+            if (isinstance(annotated_base_type, TupleType) or
+            is_named_instance(annotated_base_type, 'builtins.tuple')):
+                tuples_in_context = [annotated_base_type]
+
         if isinstance(type_context, TupleType):
             type_context_items = type_context.items
         elif type_context and is_named_instance(type_context, 'builtins.tuple'):
@@ -3569,6 +3575,11 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                 return items[0]
             if len(items) > 1:
                 self.msg.typeddict_context_ambiguous(items, dict_expr)
+        elif isinstance(context, AnnotatedType):
+            if (item_context is not None
+                    and self.match_typeddict_call_with_dict(
+                            item_context, dict_expr, dict_expr)):
+                return item_context
         # No TypedDict type in context.
         return None
 
@@ -3619,7 +3630,10 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                          if isinstance(t, CallableType)]
             if len(callables) == 1:
                 ctx = callables[0]
-
+        if isinstance(ctx, AnnotatedType):
+            annotated_base_type = get_proper_type(ctx.base_type)
+            if isinstance(annotated_base_type, CallableType):
+                ctx = annotated_base_type
         if not ctx or not isinstance(ctx, CallableType):
             return None, None
 
@@ -4067,6 +4081,8 @@ class ExpressionChecker(ExpressionVisitor[Type]):
         elif isinstance(typ, UnionType):
             result = all(self.has_member(x, member) for x in typ.relevant_items())
             return result
+        elif isinstance(typ, AnnotatedType):
+            return self.has_member(typ.base_type, member)
         elif isinstance(typ, TypeType):
             # Type[Union[X, ...]] is always normalized to Union[Type[X], ...],
             # so we don't need to care about unions here.
@@ -4441,6 +4457,11 @@ def arg_approximate_similarity(actual: Type, formal: Type) -> bool:
         return any(arg_approximate_similarity(item, formal) for item in actual.relevant_items())
     if isinstance(formal, UnionType):
         return any(arg_approximate_similarity(actual, item) for item in formal.relevant_items())
+    # Annotated
+    if isinstance(actual, AnnotatedType):
+        return arg_approximate_similarity(actual.base_type, formal)
+    if isinstance(formal, AnnotatedType):
+        return arg_approximate_similarity(actual, formal.base_type)
 
     # TypedDicts
     if isinstance(actual, TypedDictType):
@@ -4597,6 +4618,8 @@ def has_bytes_component(typ: Type, py2: bool = False) -> bool:
         byte_types = {'builtins.bytes', 'builtins.bytearray'}
     if isinstance(typ, UnionType):
         return any(has_bytes_component(t) for t in typ.items)
+    if isinstance(typ, AnnotatedType):
+        return has_bytes_component(typ.base_type)
     if isinstance(typ, Instance) and typ.type.fullname in byte_types:
         return True
     return False

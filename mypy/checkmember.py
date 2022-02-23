@@ -4,7 +4,7 @@ from typing import cast, Callable, Optional, Union, Sequence
 from typing_extensions import TYPE_CHECKING
 
 from mypy.types import (
-    Type, Instance, AnyType, TupleType, TypedDictType, CallableType, FunctionLike,
+    AnnotatedType, Type, Instance, AnyType, TupleType, TypedDictType, CallableType, FunctionLike,
     TypeVarLikeType, Overloaded, TypeVarType, UnionType, PartialType, TypeOfAny, LiteralType,
     DeletedType, NoneType, TypeType, has_type_vars, get_proper_type, ProperType, ParamSpecType
 )
@@ -149,6 +149,10 @@ def _analyze_member_access(name: str,
         return AnyType(TypeOfAny.from_another_any, source_any=typ)
     elif isinstance(typ, UnionType):
         return analyze_union_member_access(name, typ, mx)
+    elif isinstance(typ, AnnotatedType):
+        ab_type = get_proper_type(typ.base_type)
+        if isinstance(ab_type, UnionType):
+            return analyze_union_member_access(name, ab_type, mx)
     elif isinstance(typ, FunctionLike) and typ.is_type_obj():
         return analyze_type_callable_member_access(name, typ, mx)
     elif isinstance(typ, TypeType):
@@ -469,6 +473,8 @@ def analyze_descriptor_access(descriptor_type: Type,
             analyze_descriptor_access(typ, mx)
             for typ in descriptor_type.items
         ])
+    if isinstance(descriptor_type, AnnotatedType):
+        return analyze_descriptor_access(get_proper_type(descriptor_type.base_type), mx)
     elif not isinstance(descriptor_type, Instance):
         return descriptor_type
 

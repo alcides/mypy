@@ -18,8 +18,8 @@ from typing import (
 from typing_extensions import Final, TYPE_CHECKING, TypeAlias as _TypeAlias
 
 from mypy.types import (
-    Type, AnyType, TupleType, Instance, UnionType, TypeOfAny, get_proper_type, TypeVarType,
-    LiteralType, get_proper_types
+    AnnotatedType, Type, AnyType, TupleType, Instance, UnionType, TypeOfAny,
+    get_proper_type, TypeVarType, LiteralType, get_proper_types
 )
 from mypy.nodes import (
     StrExpr, BytesExpr, UnicodeExpr, TupleExpr, DictExpr, Context, Expression, StarExpr, CallExpr,
@@ -354,8 +354,14 @@ class StringFormatterChecker:
                 continue
 
             a_type = get_proper_type(actual_type)
-            actual_items = (get_proper_types(a_type.items) if isinstance(a_type, UnionType)
-                            else [a_type])
+
+            if isinstance(a_type, UnionType):
+                actual_items = get_proper_types(a_type.items)
+            elif isinstance(a_type, AnnotatedType):
+                actual_items = [get_proper_type(a_type.base_type)]
+            else:
+                actual_items = [a_type]
+
             for a_type in actual_items:
                 if custom_special_method(a_type, '__format__'):
                     continue
@@ -656,6 +662,10 @@ class StringFormatterChecker:
                 temp_node.line = replacements.line
                 self.check_simple_str_interpolation(specifiers, temp_node, expr)
             return
+        elif isinstance(rhs_type, AnnotatedType):
+            ab_type = get_proper_type(rhs_type.base_type)
+            temp_node = TempNode(ab_type)
+            self.check_simple_str_interpolation(specifiers, temp_node, expr)
         else:
             rep_types = [rhs_type]
 
@@ -981,4 +991,6 @@ def has_type_component(typ: Type, fullname: str) -> bool:
                 any(has_type_component(v, fullname) for v in typ.values))
     elif isinstance(typ, UnionType):
         return any(has_type_component(t, fullname) for t in typ.relevant_items())
+    elif isinstance(typ, AnnotatedType):
+        return has_type_component(get_proper_type(typ.base_type), fullname)
     return False

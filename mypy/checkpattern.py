@@ -21,8 +21,8 @@ from mypy.plugin import Plugin
 from mypy.subtypes import is_subtype
 from mypy.typeops import try_getting_str_literals_from_type, make_simplified_union
 from mypy.types import (
-    ProperType, AnyType, TypeOfAny, Instance, Type, UninhabitedType, get_proper_type,
-    TypedDictType, TupleType, NoneType, UnionType
+    AnnotatedType, ProperType, AnyType, TypeOfAny, Instance, Type, UninhabitedType,
+    get_proper_type, TypedDictType, TupleType, NoneType, UnionType
 )
 from mypy.typevars import fill_typevars
 from mypy.visitor import PatternVisitor
@@ -310,7 +310,8 @@ class PatternChecker(PatternVisitor[PatternType]):
                 return make_simplified_union(not_none_items)
             else:
                 return None
-
+        if isinstance(t, AnnotatedType):
+            self.get_sequence_type(get_proper_type(t.base_type))
         if self.chk.type_is_iterable(t) and isinstance(t, Instance):
             return self.chk.iterable_item_type(t)
         else:
@@ -593,6 +594,8 @@ class PatternChecker(PatternVisitor[PatternType]):
     def can_match_sequence(self, typ: ProperType) -> bool:
         if isinstance(typ, UnionType):
             return any(self.can_match_sequence(get_proper_type(item)) for item in typ.items)
+        if isinstance(typ, AnnotatedType):
+            return self.can_match_sequence(get_proper_type(typ.base_type))
         for other in self.non_sequence_match_types:
             # We have to ignore promotions, as memoryview should match, but bytes,
             # which it can be promoted to, shouldn't
