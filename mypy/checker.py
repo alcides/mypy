@@ -4234,6 +4234,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
                 callables.extend(subcallables)
                 uncallables.extend(subuncallables)
             return callables, uncallables
+        if isinstance(typ, AnnotatedType):
+            return [typ.base_type], []
 
         if isinstance(typ, TypeVarType):
             # We could do better probably?
@@ -4321,7 +4323,10 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
                 isinstance(t, UnionType) and
                 all(self._is_truthy_type(t) for t in get_proper_types(t.items))
             )
-        )
+            or (
+                isinstance(t, AnnotatedType) and
+                self._is_truthy_type(get_proper_type(t.base_type)))
+            )
 
     def _check_for_truthy_type(self, t: Type, expr: Expression) -> None:
         if not state.strict_optional:
@@ -5102,6 +5107,7 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
             isinstance(t, NoneType) or
             (isinstance(t, UnionType) and any(self.contains_none(ut) for ut in t.items)) or
             (isinstance(t, TupleType) and any(self.contains_none(tt) for tt in t.items)) or
+            (isinstance(t, AnnotatedType) and self.contains_none(t.base_type)) or
             (isinstance(t, Instance) and bool(t.args)
              and any(self.contains_none(it) for it in t.args))
         )
@@ -5414,6 +5420,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
                     # if we reach here, we refuse to do any type inference.
                     return {}, {}
             vartype = UnionType(union_list)
+        if isinstance(vartype, AnnotatedType):
+            vartype = vartype.base_type
         elif isinstance(vartype, TypeType):
             vartype = vartype.item
         elif (isinstance(vartype, Instance) and
@@ -5466,6 +5474,8 @@ class TypeChecker(NodeVisitor[None], CheckerPluginInterface):
         proper_type = get_proper_type(expr_type)
         if isinstance(proper_type, UnionType):
             possible_expr_types = get_proper_types(proper_type.relevant_items())
+        elif isinstance(proper_type, AnnotatedType):
+            possible_expr_types = [get_proper_type(proper_type.base_type)]
         else:
             possible_expr_types = [proper_type]
 

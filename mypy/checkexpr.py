@@ -16,7 +16,7 @@ from mypy.typeanal import (
 from mypy.semanal_enum import ENUM_BASES
 from mypy.types import (
     Type, AnyType, CallableType, Overloaded, NoneType, TypeVarType,
-    TupleType, TypedDictType, Instance, ErasedType, UnionType,
+    TupleType, TypedDictType, Instance, ErasedType, UnionType, AnnotatedType,
     PartialType, DeletedType, UninhabitedType, TypeType, TypeOfAny, LiteralType, LiteralValue,
     is_named_instance, FunctionLike, ParamSpecType, ParamSpecFlavor,
     StarType, is_optional, remove_optional, is_generic_instance, get_proper_type, ProperType,
@@ -380,6 +380,8 @@ class ExpressionChecker(ExpressionVisitor[Type]):
         ret_type = get_proper_type(ret_type)
         if isinstance(ret_type, UnionType):
             ret_type = make_simplified_union(ret_type.items)
+        # if isinstance(ret_type,AnnotatedType):
+        #    ret_type = ret_type.base_type
         if isinstance(ret_type, UninhabitedType) and not ret_type.ambiguous:
             self.chk.binder.unreachable()
         # Warn on calls to functions that always return None. The check
@@ -947,6 +949,8 @@ class ExpressionChecker(ExpressionVisitor[Type]):
             return self.check_any_type_call(args, callee)
         elif isinstance(callee, UnionType):
             return self.check_union_call(callee, args, arg_kinds, arg_names, context, arg_messages)
+        elif isinstance(callee, AnnotatedType):
+            return self.check_any_type_call(args, callee.base_type)
         elif isinstance(callee, Instance):
             call_function = analyze_member_access('__call__', callee, context, is_lvalue=False,
                                                   is_super=False, is_operator=True, msg=self.msg,
@@ -1093,6 +1097,11 @@ class ExpressionChecker(ExpressionVisitor[Type]):
         if isinstance(item, UnionType):
             return UnionType([self.analyze_type_type_callee(get_proper_type(tp), context)
                               for tp in item.relevant_items()], item.line)
+        if isinstance(item, AnnotatedType):
+            return AnnotatedType(
+                self.analyze_type_type_callee(get_proper_type(item.base_type), context),
+                item.metadata
+                                )
         if isinstance(item, TypeVarType):
             # Pretend we're calling the typevar's upper bound,
             # i.e. its constructor (a poor approximation for reality,
@@ -2443,6 +2452,10 @@ class ExpressionChecker(ExpressionVisitor[Type]):
             return self.check_union_method_call_by_name(method, base_type,
                                                         args, arg_kinds,
                                                         context, local_errors, original_type)
+        if isinstance(base_type, AnnotatedType):
+            return self.check_method_call_by_name(
+                method, base_type.base_type, args, arg_kinds, context
+                )
 
         method_type = analyze_member_access(method, base_type, context, False, False, True,
                                             local_errors, original_type=original_type,
@@ -3061,6 +3074,13 @@ class ExpressionChecker(ExpressionVisitor[Type]):
                 else:
                     return None
             return out
+        if isinstance(typ, AnnotatedType):
+            item = get_proper_type(typ.base_type)
+            if isinstance(item, LiteralType) and isinstance(item, int):
+                return [item]
+            else:
+                return None
+
         return None
 
     def nonliteral_tuple_index_helper(self, left_type: TupleType, index: Expression) -> Type:
@@ -3089,6 +3109,8 @@ class ExpressionChecker(ExpressionVisitor[Type]):
             typ = get_proper_type(self.accept(index))
             if isinstance(typ, UnionType):
                 key_types: List[Type] = list(typ.items)
+            elif isinstance(typ, AnnotatedType):
+                key_types = [get_proper_type(typ.base_type)]
             else:
                 key_types = [typ]
 
